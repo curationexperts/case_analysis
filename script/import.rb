@@ -3,13 +3,13 @@
 require File.join(File.dirname(__FILE__), '../config/environment.rb')
 
 unless ARGV[0]
-  puts "Usage: #{__FILE__} <username> <password>\n"
+  puts "Usage: #{__FILE__} <username> <password> <start_at>\n"
   exit  
 end
 user = ARGV[0]
 password = ARGV[1]
+start_at = ARGV[2] ? ARGV[2].to_i : 0
 fedora_url = 'http://digitalcase.case.edu:9000/fedora'
-solr_url = 'http://localhost:8983/solr/'
 
 OBJECT = 'Object'.freeze
 DATASTREAM = 'Datastream'.freeze
@@ -22,6 +22,7 @@ def reindex_everything(repo, query = '')
   repo.search(query) do |object|
     next if object.pid.start_with?('fedora-system:')
     i += 1
+    next if i < start_at
     puts "I: #{i}"
     begin
       @solr_conn.add index_digital_object(object)
@@ -47,6 +48,6 @@ end
 
 
 repo = Rubydora.connect url: fedora_url, user: user, password: password
-@solr_conn = RSolr.connect(url: solr_url)
+@solr_conn = Blacklight.solr
 reindex_everything(repo)
 
