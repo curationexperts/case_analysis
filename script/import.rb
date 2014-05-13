@@ -23,14 +23,17 @@ def reindex_everything(repo, query = '')
     next if object.pid.start_with?('fedora-system:')
     i += 1
     puts "I: #{i}"
-    @solr_conn.add index_digital_object(object)
-    @solr_conn.commit if i % 1000 == 0
+    begin
+      @solr_conn.add index_digital_object(object)
+    rescue Rubydora::FedoraInvalidRequest => e
+      puts "ERROR #{e}"
+    end
+    @solr_conn.commit(softCommit: true) if i % 100 == 0
   end
   @solr_conn.commit
 end
 
 def index_digital_object(object)
-  # TODO datastreams
   docs = object.datastreams.map do |_, ds|
     index_datastream(ds)
   end
@@ -38,7 +41,7 @@ def index_digital_object(object)
 end
 
 def index_datastream(ds)
-  {id: [ds.pid, ds.dsid].join('-'), dsid_ssi: ds.dsid, label_ssi: ds.dsLabel, size_lsi: ds.dsSize, mime_ssi: ds.mimeType, 
+  {id: [ds.pid, ds.dsid].join('-'), pid_ssi: ds.pid, dsid_ssi: ds.dsid, label_ssi: ds.dsLabel, size_lsi: ds.dsSize, mime_ssi: ds.mimeType, 
    location_ss: ds.dsLocation, control_group_ssi: ds.controlGroup, type_ssi: DATASTREAM}
 end
 
