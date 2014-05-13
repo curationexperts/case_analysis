@@ -29,8 +29,8 @@ class CatalogController < ApplicationController
     #}
 
     # solr field configuration for search results/index views
-    config.index.title_field = 'title_display'
-    config.index.display_type_field = 'format'
+    config.index.title_field = 'label_ssi'
+    config.index.display_type_field = 'type_ssi'
 
     # solr field configuration for document/show views
     #config.show.title_field = 'title_display'
@@ -55,22 +55,29 @@ class CatalogController < ApplicationController
     #
     # :show may be set to false if you don't want the facet to be drawn in the 
     # facet bar
-    config.add_facet_field 'format', :label => 'Format'
-    config.add_facet_field 'pub_date', :label => 'Publication Year', :single => true
-    config.add_facet_field 'subject_topic_facet', :label => 'Topic', :limit => 20 
-    config.add_facet_field 'language_facet', :label => 'Language', :limit => true 
-    config.add_facet_field 'lc_1letter_facet', :label => 'Call Number' 
-    config.add_facet_field 'subject_geo_facet', :label => 'Region' 
-    config.add_facet_field 'subject_era_facet', :label => 'Era'  
+    config.add_facet_field 'type_ssi', :label => 'Type'
+    config.add_facet_field 'dsid_ssi', :label => 'Datastream ID', :limit => 20 
+    config.add_facet_field 'label_ssi', :label => 'Datastream Label', :limit => 20 
+    config.add_facet_field 'mime_ssi', :label => 'Content-type' 
+    config.add_facet_field 'control_group_ssi', :label => 'Control Group' 
 
-    config.add_facet_field 'example_pivot_field', :label => 'Pivot Field', :pivot => ['format', 'language_facet']
-
-    config.add_facet_field 'example_query_facet_field', :label => 'Publish Date', :query => {
-       :years_5 => { :label => 'within 5 Years', :fq => "pub_date:[#{Time.now.year - 5 } TO *]" },
-       :years_10 => { :label => 'within 10 Years', :fq => "pub_date:[#{Time.now.year - 10 } TO *]" },
-       :years_25 => { :label => 'within 25 Years', :fq => "pub_date:[#{Time.now.year - 25 } TO *]" }
+    config.add_facet_field 'ds_count_isi', :label => 'Datastream Count', :query => {
+       :size_tiny => { :label => '4 or fewer', :fq => "ds_count_isi:[* TO 4]" },
+       :size_small => { :label => '5 to 50', :fq => "ds_count_isi:[5 TO 50]" },
+       :size_medium => { :label => '51 to 100', :fq => "ds_count_isi:[51 TO 100]" },
+       :size_big => { :label => 'More than 100', :fq => "ds_count_isi:[101 TO *]" }
+    }
+    config.add_facet_field 'aggregate_size_lsi', :label => 'Aggregate Size', :query => {
+       :size_tiny => { :label => 'Less than 1MB', :fq => "aggregate_size_lsi:[* TO 1000000]" },
+       :size_small => { :label => '1MB to 10MB', :fq => "aggregate_size_lsi:[1000001 TO 10000000]" },
+       :size_medium => { :label => '10MB to 1GB', :fq => "aggregate_size_lsi:[10000001 TO 1000000000]" },
+       :size_big => { :label => 'Larger than 1GB', :fq => "aggregate_size_lsi:[1000000001 TO *]" }
     }
 
+
+  #     docs << {id: object.pid, type_ssi: OBJECT, ds_count_isi: docs.size, aggregate_size_lsi: docs.map { |e| e[:size_lsi] }.sum }
+  # {id: [ds.pid, ds.dsid].join('-'), dsid_ssi: ds.dsid, label_ssi: ds.dsLabel, size_lsi: ds.dsSize, mime_ssi: ds.mimeType, 
+  #  location_ss: ds.dsLocation, control_group_ssi: ds.controlGroup, type_ssi: DATASTREAM}
 
     # Have BL send all facet field names to Solr, which has been the default
     # previously. Simply remove these lines if you'd rather use Solr request
@@ -79,32 +86,33 @@ class CatalogController < ApplicationController
 
     # solr fields to be displayed in the index (search results) view
     #   The ordering of the field names is the order of the display 
-    config.add_index_field 'title_display', :label => 'Title'
-    config.add_index_field 'title_vern_display', :label => 'Title'
-    config.add_index_field 'author_display', :label => 'Author'
-    config.add_index_field 'author_vern_display', :label => 'Author'
+    config.add_index_field 'type_ssi', :label => 'Type'
+    config.add_index_field 'id', :label => 'Id', helper_method: :link_id
+    config.add_index_field 'dsid_ssi', :label => 'Datastream ID'
+    config.add_index_field 'pid_ssi', :label => 'Object ID'
+    config.add_index_field 'label_ssi', :label => 'Label'
     config.add_index_field 'format', :label => 'Format'
-    config.add_index_field 'language_facet', :label => 'Language'
-    config.add_index_field 'published_display', :label => 'Published'
-    config.add_index_field 'published_vern_display', :label => 'Published'
-    config.add_index_field 'lc_callnum_display', :label => 'Call number'
+    config.add_index_field 'mime_ssi', :label => 'Mime type'
+    config.add_index_field 'size_lsi', :label => 'Datastream size'
+    config.add_index_field 'aggregate_size_lsi', :label => 'Object Size'
+    config.add_index_field 'ds_count_isi', :label => 'Number of datastreams'
 
     # solr fields to be displayed in the show (single result) view
     #   The ordering of the field names is the order of the display 
-    config.add_show_field 'title_display', :label => 'Title'
-    config.add_show_field 'title_vern_display', :label => 'Title'
-    config.add_show_field 'subtitle_display', :label => 'Subtitle'
-    config.add_show_field 'subtitle_vern_display', :label => 'Subtitle'
-    config.add_show_field 'author_display', :label => 'Author'
-    config.add_show_field 'author_vern_display', :label => 'Author'
-    config.add_show_field 'format', :label => 'Format'
-    config.add_show_field 'url_fulltext_display', :label => 'URL'
-    config.add_show_field 'url_suppl_display', :label => 'More Information'
-    config.add_show_field 'language_facet', :label => 'Language'
-    config.add_show_field 'published_display', :label => 'Published'
-    config.add_show_field 'published_vern_display', :label => 'Published'
-    config.add_show_field 'lc_callnum_display', :label => 'Call number'
-    config.add_show_field 'isbn_t', :label => 'ISBN'
+    # config.add_show_field 'title_display', :label => 'Title'
+    # config.add_show_field 'title_vern_display', :label => 'Title'
+    # config.add_show_field 'subtitle_display', :label => 'Subtitle'
+    # config.add_show_field 'subtitle_vern_display', :label => 'Subtitle'
+    # config.add_show_field 'author_display', :label => 'Author'
+    # config.add_show_field 'author_vern_display', :label => 'Author'
+    # config.add_show_field 'format', :label => 'Format'
+    # config.add_show_field 'url_fulltext_display', :label => 'URL'
+    # config.add_show_field 'url_suppl_display', :label => 'More Information'
+    # config.add_show_field 'language_facet', :label => 'Language'
+    # config.add_show_field 'published_display', :label => 'Published'
+    # config.add_show_field 'published_vern_display', :label => 'Published'
+    # config.add_show_field 'lc_callnum_display', :label => 'Call number'
+    # config.add_show_field 'isbn_t', :label => 'ISBN'
 
     # "fielded" search configuration. Used by pulldown among other places.
     # For supported keys in hash, see rdoc for Blacklight::SearchFields
@@ -169,10 +177,10 @@ class CatalogController < ApplicationController
     # label in pulldown is followed by the name of the SOLR field to sort by and
     # whether the sort is ascending or descending (it must be asc or desc
     # except in the relevancy case).
-    config.add_sort_field 'score desc, pub_date_sort desc, title_sort asc', :label => 'relevance'
-    config.add_sort_field 'pub_date_sort desc, title_sort asc', :label => 'year'
-    config.add_sort_field 'author_sort asc, title_sort asc', :label => 'author'
-    config.add_sort_field 'title_sort asc, pub_date_sort desc', :label => 'title'
+    config.add_sort_field 'score desc, type_ssi desc, size_lsi asc', :label => 'relevance'
+    config.add_sort_field 'type_ssi desc, size_lsi asc', :label => 'type'
+    config.add_sort_field 'size_lsi asc, type_ssi asc', :label => 'size'
+    config.add_sort_field 'aggregate_size_lsi asc, type_ssi desc', :label => 'aggregate size'
 
     # If there are more than this many search results, no spelling ("did you 
     # mean") suggestion is offered.
