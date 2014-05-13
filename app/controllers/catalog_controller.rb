@@ -58,7 +58,7 @@ class CatalogController < ApplicationController
     config.add_facet_field 'type_ssi', :label => 'Type'
     config.add_facet_field 'dsid_ssi', :label => 'Datastream ID', :limit => 20 
     config.add_facet_field 'label_ssi', :label => 'Datastream Label', :limit => 20 
-    config.add_facet_field 'mime_ssi', :label => 'Content-type' 
+    config.add_facet_field 'mime_ssi', :label => 'Content-type', limit: 20
     config.add_facet_field 'control_group_ssi', :label => 'Control Group' 
 
     config.add_facet_field 'ds_count_isi', :label => 'Datastream Count', :query => {
